@@ -764,7 +764,10 @@ function hide(id){ qs(id).classList.remove("active") }
 // ONBOARDING
 // ══════════════════════════════════════════════════════════
 function startOB(){
-  OB={step:0,ans:{},name:"",email:""};
+  // Récupérer les données de la landing si disponibles
+  var savedName = sessionStorage.getItem('mirror_name') || '';
+  var savedEmail = sessionStorage.getItem('mirror_email') || '';
+  OB={step:0,ans:{},name:savedName,email:savedEmail};
   renderOB();
 }
 
@@ -897,7 +900,7 @@ async function generateProfile(){
     "\"defis_perso\":[\"defi1\",\"defi2\",\"defi3\"]}";
 
   try {
-    var res=await fetch("https://api.anthropic.com/v1/messages",{
+    var res=await fetch("/api/claude",{
       method:"POST",
       headers:{"Content-Type":"application/json"},
       body:JSON.stringify({
@@ -1467,7 +1470,7 @@ async function subDefi(ch){
   var text=ST.dtx[ch.id]; if(!text||!text.trim()) return;
   ST.dlod=true; rDefis();
   try {
-    var res=await fetch("https://api.anthropic.com/v1/messages",{
+    var res=await fetch("/api/claude",{
       method:"POST",headers:{"Content-Type":"application/json"},
       body:JSON.stringify({
         model:"claude-sonnet-4-20250514",max_tokens:400,
@@ -1607,7 +1610,17 @@ function rPlans(){
     pb5.appendChild(pfs);
     var pbs=dv("plan-btns");
     var db2=bt("btn-detail",ST.popen[p.id]?"Réduire":"Détail",function(e){ e.stopPropagation(); ST.popen[p.id]=!ST.popen[p.id]; rPlans() });
-    var gb2=bt("btn-go","7j gratuits →",function(e){ e.stopPropagation() }); gb2.style.background=p.tagFg;
+    var stripeLinks={starter:"https://buy.stripe.com/test_starter",essential:"https://buy.stripe.com/test_essential",pro:"https://buy.stripe.com/test_pro",premium:"https://buy.stripe.com/test_premium"};
+    var gb2=bt("btn-go","7j gratuits →",function(e){ 
+      e.stopPropagation();
+      // MODE TEST — remplace par tes vrais liens Stripe Payment Link
+      var name = P ? P.user.name : (OB.name || "");
+      var email = P ? P.user.email : (OB.email || "");
+      var link = stripeLinks[p.id] || stripeLinks.starter;
+      // Passer le nom/email en paramètre URL pour pré-remplir Stripe
+      var url = link + (email ? "?prefilled_email="+encodeURIComponent(email) : "");
+      alert("MODE TEST\n\nEn production ce bouton redirigera vers Stripe.\n\nPlan: "+p.name+"\nPrix: "+p.price+"\nTrial: 7 jours gratuits\n\nPour activer:\n1. Va sur dashboard.stripe.com\n2. Payment Links → Créer\n3. Remplace les liens test dans le code");
+    }); gb2.style.background=p.tagFg;
     pbs.appendChild(db2); pbs.appendChild(gb2); pb5.appendChild(pbs);
     var hint=dv("",`text-align:center;padding:8px 0 4px;font-size:11px;color:var(--text3)`);
     ih(hint,`<span style="color:var(--gold)">◈</span> Appuie pour voir tous les détails`); pb5.appendChild(hint);
@@ -1658,7 +1671,7 @@ async function sendChat(text){
       "Ses blocages: "+(P.blocages||[]).map(function(b){ return b.t }).join(", ")+". "+
       "Sa situation: "+(OB.ans.situation||"")+". Son objectif: "+(OB.ans.objectif||"")+". "+
       "Sois direct, percutant, personnalise. Cite ses mots quand c'est pertinent. Max 3 phrases. Francais. Jamais de platitudes generiques.";
-    var res=await fetch("https://api.anthropic.com/v1/messages",{
+    var res=await fetch("/api/claude",{
       method:"POST",headers:{"Content-Type":"application/json"},
       body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:300,system:sys,messages:hist})
     });
